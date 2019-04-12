@@ -18,6 +18,11 @@ def filter_instances(project):
     
     return instances 
 
+def has_pending_snapshots(volume):
+    snapshots = list(volume.snapshots.all())
+    return snapshots and snapshots[0].state == 'pending'
+
+
 ############# DEFAULT COMMANDS #################################################
 @click.group()
 def cli():
@@ -108,9 +113,13 @@ def create_snapshots(project):
         i.wait_until_stopped()
         print("Stopped.")
         for v in i.volumes.all():
-            print("Creating snapshot of {}".format(v.id))
-            v.create_snapshot(Description="Created by Snapshotalyzer-30000")
-        print("Snapshot initiated. Starting {}, ({})".format(i.id, tags.get("Project", "<no Project>")))
+            skip = has_pending_snapshots(v)
+            if skip:
+                print("Skipping {} for {} ({}), snapshot already in progress.".format(v.id, i.id, tags.get("Project", "<no Project>") ))
+            else:
+                print("Creating snapshot of {}".format(v.id))
+                v.create_snapshot(Description="Created by Snapshotalyzer-30000")
+        if not skip: print("Snapshot initiated. Starting {}, ({})".format(i.id, tags.get("Project", "<no Project>")))
         try:
             i.start()
         except botocore.exceptions.ClientError as e:
