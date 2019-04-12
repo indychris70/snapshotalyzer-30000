@@ -95,10 +95,18 @@ def create_snapshots(project):
     instances = filter_instances(project)
         
     for i in instances:
+        tags = { t["Key"]: t["Value"] for t in i.tags or [] }
+        print("Stopping {} ({})".format(i.id, tags.get("Project", "<no Project>") ))
+        i.stop()
+        i.wait_until_stopped()
+        print("Stopped.")
         for v in i.volumes.all():
             print("Creating snapshot of {}".format(v.id))
             v.create_snapshot(Description="Created by Snapshotalyzer-30000")
-            
+        print("Snapshot initiated. Starting {}, ({})".format(i.id, tags.get("Project", "<no Project>")))
+        i.start()
+        i.wait_until_running()
+        print("******** DONE **********")
     return
 
 ## LIST INSTANCES ##
