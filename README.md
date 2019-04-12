@@ -13,5 +13,7 @@ aws configure --profile snapshotalyzer
 
 ## Running
 ```
-pipenv run python snapshotalyzer/shotty.py
+pipenv run python snapshotalyzer/shotty.py <COMMAND> <--project=PROJECT>
 ```
+*COMMAND* is list, start, or stop 
+*PROJECT* is the value for the instance Project tag. PROJECT is optional. If PROJECT is ommitted, the COMMAND will be executed against all instances.
