@@ -1,5 +1,6 @@
 
 import boto3
+import botocore
 import sys
 import click
 
@@ -97,14 +98,22 @@ def create_snapshots(project):
     for i in instances:
         tags = { t["Key"]: t["Value"] for t in i.tags or [] }
         print("Stopping {} ({})".format(i.id, tags.get("Project", "<no Project>") ))
-        i.stop()
+        try:
+            i.stop()
+        except botocore.exceptions.ClientError as e:
+            print("Could not stop {} ({}). {}".format(i.id, tags.get("Project", "<no Project>"), e))
+            continue
         i.wait_until_stopped()
         print("Stopped.")
         for v in i.volumes.all():
             print("Creating snapshot of {}".format(v.id))
             v.create_snapshot(Description="Created by Snapshotalyzer-30000")
         print("Snapshot initiated. Starting {}, ({})".format(i.id, tags.get("Project", "<no Project>")))
-        i.start()
+        try:
+            i.start()
+        except botocore.exceptions.ClientError as e:
+            print("Could not start {} ({}). {}".format(i.id, tags.get("Project", "<no Project>"), e))
+            continue
         i.wait_until_running()
         print("******** DONE **********")
     return
@@ -144,7 +153,11 @@ def stop_instances(project):
         tags = { t["Key"]: t["Value"] for t in i.tags or [] }
         if i.state["Name"] != "stopped" and i.state["Name"] != "stopping":
             print("Stopping {} (id: {})...".format(tags.get("Project", "<no Project>"), i.id))
-            i.stop()
+            try:
+                i.stop()
+            except botocore.exceptions.ClientError as e:
+                print("Could not stop {} ({}). {}".format(i.id, tags.get("Project", "<no Project>"), e))
+                continue
         else:
             print("Instance {} (id: {}) is {}".format(tags.get("Project", "<no Project>"), i.id, i.state["Name"]))
 
@@ -160,7 +173,11 @@ def stop_instances(project):
         tags = { t["Key"]: t["Value"] for t in i.tags or [] }
         if i.state["Name"] != "running" and i.state["Name"] != "pending":
             print("Starting {} (id: {})...".format(tags.get("Project", "<no Project>"), i.id))
-            i.start()
+            try:
+                i.start()
+            except botocore.exceptions.ClientError as e:
+                print("Could not start {} ({}). {}".format(i.id, tags.get("Project", "<no Project>"), e))
+                continue
         else:
             print("Instance {} (id: {}) is {}.".format(tags.get("Project", "<no Project>"), i.id, i.state["Name"]))    
         
